@@ -2,10 +2,28 @@ import { useState } from 'react'
 import heroImg from './assets/hero.png'
 import reactLogo from './assets/react.svg'
 import viteLogo from './assets/vite.svg'
+import { listLayers } from './qgisBridge.js'
 import './App.css'
 
 function App() {
   const [count, setCount] = useState(0)
+  const [layers, setLayers] = useState(null)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+
+  async function refreshLayers() {
+    setLoading(true)
+    setError('')
+
+    try {
+      const result = await listLayers()
+      setLayers(result)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err))
+    } finally {
+      setLoading(false)
+    }
+  }
 
   return (
     <>
@@ -28,6 +46,28 @@ function App() {
         >
           Count is {count}
         </button>
+      </section>
+
+      <section id="project-layers">
+        <h2>Project layers</h2>
+
+        <button type="button" onClick={refreshLayers} disabled={loading}>
+          {loading ? 'Loading…' : 'Refresh layers'}
+        </button>
+
+        {error && <p role="alert">{error}</p>}
+
+        {layers === null ? (
+          <p>Click Refresh layers to read the current QGIS project.</p>
+        ) : layers.length === 0 ? (
+          <p>The project has no layers.</p>
+        ) : (
+          <ul>
+            {layers.map((layer) => (
+              <li key={layer.id}>{layer.name}</li>
+            ))}
+          </ul>
+        )}
       </section>
 
       <div className="ticks"></div>
