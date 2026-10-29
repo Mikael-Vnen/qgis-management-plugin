@@ -11,6 +11,7 @@ node_modules
 dist
 dist-ssr
 *.local
+symbology-style.db
 
 # Editor directories and files
 .vscode/*
@@ -22,5 +23,9 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Python cache files
+__pycache__/
+*.py[cod]
 
 /plugin/qgis_management/web/

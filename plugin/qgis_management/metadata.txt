@@ -1,0 +1,15 @@
+[general]
+name=QGIS Management
+description=Configure Qgis projects through a simplified interface.
+about=A portfolio project that aims to simplify project management in QGIS, 
+    similarly to how apps like MerginMaps & QField simplify data collection/project management.
+    Goals is to create an easy to use UI that allows users to:
+    - Create/Manage relations
+    - Create complex layer properties without scripting
+    - User management/object hierarchy/filtering
+version=0.1.0
+qgisMinimumVersion=3.44
+qgisMaximumVersion=3.99
+author=Mikael Virtanen
+repository=https://github.com/Mikael-Vnen/qgis-management-plugin
+experimental=True
