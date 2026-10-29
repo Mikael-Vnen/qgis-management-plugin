@@ -4,6 +4,9 @@
     "dockerfile": "Dockerfile",
     "context": ".."
   },
+  "mounts": [
+    "source=${localEnv:QGIS_PROJECTS_DIR},target=/projects,type=bind,readonly"
+  ],
   "overrideCommand": true,
   "containerEnv": {
     "QT_QPA_PLATFORM": "offscreen"
