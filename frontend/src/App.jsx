@@ -1,51 +1,119 @@
-import { useState } from 'react'
-import heroImg from './assets/hero.png'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import { listLayers } from './qgisBridge.js'
+import { 
+  useState,
+  useEffect, 
+  useCallback 
+} from 'react'
+
+import { 
+  qgisGetFieldsFromLayer, 
+  qgisListCurrentLayers,
+  refreshPlugin, 
+} from './qgisBridge.js'
+
+import DefaultValueEditor from './features/field-settings/DefaultValueEditor.jsx'
 import './App.css'
 
 function App() {
-  const [count, setCount] = useState(0)
-  const [layers, setLayers] = useState(null)
   const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
+  const [refreshError, setReError] = useState('')
+  
+  // project layers
+  const [layers, setLayers] = useState(null)
+  const [error, setLayerError] = useState('')
 
-  async function refreshLayers() {
+  // layer fields & related properties
+  const [fields, setFields] = useState(null)
+  const [fieldError, setFieldError] = useState('')
+  const [selectedLayerFields, setSelectedLayerFields] = useState('')
+
+  // layer field defaults & related properties
+  const [selectedFieldDefault, setSelectedFieldDefault] = useState('')
+
+  const refreshLayers = useCallback(async () => {
+
     setLoading(true)
-    setError('')
+    setLayerError('')
 
     try {
-      const result = await listLayers()
+      const result = await qgisListCurrentLayers()
       setLayers(result)
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err))
+      setLayerError(err instanceof Error ? err.message : String(err))
+    } finally {
+      setLoading(false)
+      setSelectedLayerFields('')
+      setFields(null)
+      setFieldError('')
+    }
+
+  }, [])
+
+  async function getFields() {
+    
+    if (!selectedLayerFields) {
+      setFieldError('Layer not selected')
+      return
+    } 
+    
+    setLoading(true)
+    setFieldError('')
+
+    try {
+      const result = await qgisGetFieldsFromLayer(selectedLayerFields)
+      if (result.error !== null) {
+        setFields(null)
+        setFieldError(result.error)
+      } else {
+        setFields(result.fields)
+      }
+    } catch (err) {
+      setFieldError(err instanceof Error ? err.message : String(err))
     } finally {
       setLoading(false)
     }
   }
 
+  async function callRefresh() {
+    
+    const pluginName = 'qgis_management'
+    try {
+      const result = await refreshPlugin(pluginName)
+      
+      if (result == 'False'){
+        setReError('Refresh returned false')
+      } else {
+        setReError(result)
+      }
+    } catch (err) {
+      setReError(err instanceof Error ? err.message : String(err))
+    } 
+  }
+
+  // Refresh layers when opening the plugin
+  useEffect(() => {
+
+    refreshLayers()
+
+    function handleWindowOpened() {
+      refreshLayers()
+    }
+
+    window.addEventListener('qgis-window-opened', handleWindowOpened)
+
+    return () => {
+      window.removeEventListener('qgis-window-opened', handleWindowOpened)
+    }
+  }, [refreshLayers])
+
   return (
     <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            This is a test
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
+      <section id="refresh-button">
+
+        <button type="button" onClick={callRefresh}>
+          Reload plugin
         </button>
+        {refreshError && <p role="alert" className='error-text'> {refreshError}</p>}
+
       </section>
 
       <section id="project-layers">
@@ -58,103 +126,86 @@ function App() {
         {error && <p role="alert">{error}</p>}
 
         {layers === null ? (
-          <p>Click Refresh layers to read the current QGIS project.</p>
+          <p>Loading...</p>
         ) : layers.length === 0 ? (
-          <p>The project has no layers.</p>
+          <p className='error-text'>
+            The project has no layers, or you don't have project opened.
+          </p>
         ) : (
           <ul>
             {layers.map((layer) => (
-              <li key={layer.id}>{layer.name}</li>
+              <li key={layer.id}> {layer.name} - <code>{layer.id}</code> </li>
             ))}
           </ul>
         )}
       </section>
 
-      <div className="ticks"></div>
+      <label htmlFor="layer-select">Layer selection</label>
+      <select
+        id="layer-select"
+        value={selectedLayerFields}
+        disabled={loading || !layers?.length}
+        onChange={(event) => {
+          setSelectedLayerFields(event.target.value)
+          setSelectedFieldDefault('')
+          setFields(null)
+          setFieldError('')
+        }}
+      >
+        <option value="">Select a layer…</option>
 
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
+        {(layers ?? []).map((layer) => (
+          <option key={layer.id} value={layer.id}>
+            {layer.name}
+          </option>
+        ))}
+      </select>
+
+      <section id="layer-fields">
+        <h2>Layer fields</h2>
+
+        <button type="button" onClick={getFields} disabled={loading}>
+          {loading ? 'Loading…' : 'Get fields'}
+        </button>
+
+        {fieldError && <p id="layer-fields-error" className="error-text" role="alert"> {fieldError}</p>}
+
+        {fields === null ? (
+          <p>Get fields for a particular field.</p>
+        ) : fields.length === 0 ? (
+          <p>No fields, or error.</p>
+        ) : (
           <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
+            {fields.map((field) => (
+              <li key={field.name}> {field.name} - <code>{field.type}</code> </li>
+            ))}
           </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
+        )}
       </section>
 
-      <div className="ticks"></div>
-      <section id="spacer"></section>
+      <label htmlFor="field-select-default">Field selection</label>
+      <select
+        id="field-select-default"
+        value={selectedFieldDefault}
+        disabled={loading || !fields?.length}
+        onChange={(event) => {setSelectedFieldDefault(event.target.value)}}
+      >
+        <option value="">Select a field…</option>
+
+        {(fields ?? []).map((field) => (
+          <option key={field.name} value={field.name}>
+            {field.name}
+          </option>
+        ))}
+      </select>
+
+      <DefaultValueEditor
+        key={JSON.stringify([selectedLayerFields, selectedFieldDefault])}
+        layerId={selectedLayerFields}
+        fieldName={selectedFieldDefault}
+        loading={loading}
+        onLoadingChange={setLoading}
+      />
     </>
   )
 }

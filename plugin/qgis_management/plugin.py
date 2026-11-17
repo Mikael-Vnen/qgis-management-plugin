@@ -1,5 +1,6 @@
 from pathlib import Path
 from qgis.PyQt.QtCore import QUrl
+from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtWidgets import QAction
 from PyQt5.QtWebChannel import QWebChannel
 from PyQt5.QtWebEngineWidgets import QWebEngineView
@@ -24,15 +25,21 @@ class QgisManagement:
 
   def initGui(self):
 
+    plugin_icon_path = Path(__file__).resolve().parent / "assets" / "plugin_icon.svg"
+
     self.action = QAction("QGIS management", self.iface.mainWindow())
     self.action.setObjectName("testAction")
     self.action.setWhatsThis("Configuration for test plugin")
     self.action.setStatusTip("This is status tip")
+    self.action.setIcon(QIcon(str(plugin_icon_path)))
     self.action.triggered.connect(self.open_window)
 
     # add toolbar button and menu item
-    self.iface.addToolBarIcon(self.action)
     self.iface.addPluginToMenu("&QGIS management", self.action)
+
+    self.plugin_toolbar = self.iface.addToolBar("QGIS management")
+    self.plugin_toolbar.setObjectName("QGIS management")
+    self.plugin_toolbar.addAction(self.action)
 
 
   def open_window(self):
@@ -47,13 +54,17 @@ class QgisManagement:
         page = self.window.page()
         self.channel = QWebChannel(page)
         self.bridge = ProjectBridge(self.channel)
-
         self.channel.registerObject("projectBridge", self.bridge)
         page.setWebChannel(self.channel)
 
         self.window.setWindowTitle("QGIS Management")
-        self.window.resize(900, 650)
+        self.window.resize(750, 650)
         self.window.load(QUrl.fromLocalFile(str(html_path)))
+
+    else:
+        self.window.page().runJavaScript(
+            "window.dispatchEvent(new Event('qgis-window-opened'))"
+        )
 
     self.window.show()
     self.window.raise_()
