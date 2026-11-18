@@ -10,7 +10,5 @@ Raster layers or at least openstreetmap doesn't get loaded properly. Right now I
 Time codes are in an odd way "PyQt5.QtCore.QDateTime(2026, 8, 21, 10, 37, 30, 810, PyQt5.QtCore.Qt.TimeSpec(1))"
 Not the end of the world, but needs to be fixed at some point.
 
-redeploy the plugin, remember to run outside of the container.
-& "C:\Program Files\QGIS 3.44.7\apps\Python312\python.exe" `
-  .\scripts\deploy_plugin.py `
-  --plugins-dir "$env:APPDATA\QGIS\QGIS3\profiles\default\python\plugins"
+redeploy the plugin, remember to run outside of the container. 
+& "C:\Program Files\QGIS 3.44.7\apps\Python312\python.exe" .\scripts\deploy_plugin.py --plugins-dir "$env:APPDATA\QGIS\QGIS3\profiles\default\python\plugins"
