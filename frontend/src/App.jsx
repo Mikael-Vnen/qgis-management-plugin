@@ -11,15 +11,21 @@ import {
 } from './qgisBridge.js'
 
 import DefaultValueEditor from './features/field-settings/DefaultValueEditor.jsx'
+import useProjectLayers from './features/project/useProjectLayers.js'
 import './App.css'
 
 function App() {
   const [loading, setLoading] = useState(false)
   const [refreshError, setReError] = useState('')
   
-  // project layers
-  const [layers, setLayers] = useState(null)
-  const [error, setLayerError] = useState('')
+  const busy = layersLoading || loading
+  const {
+    layers,
+    loading: layersLoading,
+    error: layerError,
+    refreshLayers,
+  } = useProjectLayers()
+
 
   // layer fields & related properties
   const [fields, setFields] = useState(null)
@@ -28,25 +34,6 @@ function App() {
 
   // layer field defaults & related properties
   const [selectedFieldDefault, setSelectedFieldDefault] = useState('')
-
-  const refreshLayers = useCallback(async () => {
-
-    setLoading(true)
-    setLayerError('')
-
-    try {
-      const result = await qgisListCurrentLayers()
-      setLayers(result)
-    } catch (err) {
-      setLayerError(err instanceof Error ? err.message : String(err))
-    } finally {
-      setLoading(false)
-      setSelectedLayerFields('')
-      setFields(null)
-      setFieldError('')
-    }
-
-  }, [])
 
   async function getFields() {
     
@@ -75,6 +62,7 @@ function App() {
 
   async function callRefresh() {
     
+    setReError('')
     const pluginName = 'qgis_management'
     try {
       const result = await refreshPlugin(pluginName)
@@ -89,44 +77,45 @@ function App() {
     } 
   }
 
-  // Refresh layers when opening the plugin
   useEffect(() => {
+    if (layers === null || !selectedLayerFields) return
 
-    refreshLayers()
+    const selectedLayerExists = layers.some(
+      layer => layer.id === selectedLayerFields
+    )
 
-    function handleWindowOpened() {
-      refreshLayers()
+    if (!selectedLayerExists) {
+      setSelectedLayerFields('')
+      setSelectedFieldDefault('')
+      setFields(null)
+      setFieldError('')
     }
-
-    window.addEventListener('qgis-window-opened', handleWindowOpened)
-
-    return () => {
-      window.removeEventListener('qgis-window-opened', handleWindowOpened)
-    }
-  }, [refreshLayers])
+  }, [layers, selectedLayerFields])
 
   return (
     <>
       <section id="refresh-button">
-
-        <button type="button" onClick={callRefresh}>
-          Reload plugin
+        <button type="button" onClick={callRefresh}> 
+          Reload plugin 
         </button>
         {refreshError && <p role="alert" className='error-text'> {refreshError}</p>}
-
       </section>
 
       <section id="project-layers">
         <h2>Project layers</h2>
 
-        <button type="button" onClick={refreshLayers} disabled={loading}>
-          {loading ? 'Loading…' : 'Refresh layers'}
+        <button type="button" onClick={refreshLayers} disabled={busy}>
+          {layersLoading ? 'Loading…' : 'Refresh layers'}
         </button>
 
-        {error && <p role="alert">{error}</p>}
+        {layerError  && <p role="alert">{layerError }</p>}
 
         {layers === null ? (
-          <p>Loading...</p>
+          <p>
+            {layersLoading
+              ? 'Loading layers…'
+              : 'Layers could not be loaded. Try refreshing.'}
+          </p>
         ) : layers.length === 0 ? (
           <p className='error-text'>
             The project has no layers, or you don't have project opened.
@@ -144,7 +133,7 @@ function App() {
       <select
         id="layer-select"
         value={selectedLayerFields}
-        disabled={loading || !layers?.length}
+        disabled={busy || !layers?.length}
         onChange={(event) => {
           setSelectedLayerFields(event.target.value)
           setSelectedFieldDefault('')
@@ -164,7 +153,7 @@ function App() {
       <section id="layer-fields">
         <h2>Layer fields</h2>
 
-        <button type="button" onClick={getFields} disabled={loading}>
+        <button type="button" onClick={getFields} disabled={busy}>
           {loading ? 'Loading…' : 'Get fields'}
         </button>
 
@@ -187,7 +176,7 @@ function App() {
       <select
         id="field-select-default"
         value={selectedFieldDefault}
-        disabled={loading || !fields?.length}
+        disabled={busy || !fields?.length}
         onChange={(event) => {setSelectedFieldDefault(event.target.value)}}
       >
         <option value="">Select a field…</option>
@@ -203,7 +192,7 @@ function App() {
         key={JSON.stringify([selectedLayerFields, selectedFieldDefault])}
         layerId={selectedLayerFields}
         fieldName={selectedFieldDefault}
-        loading={loading}
+        loading={busy}
         onLoadingChange={setLoading}
       />
     </>
