@@ -8,5 +8,6 @@ export default defineConfig({
   base: './',
   build: {
     target: 'chrome87',
+    minify: false,
   },
 })
