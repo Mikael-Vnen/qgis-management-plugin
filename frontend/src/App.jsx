@@ -1,64 +1,49 @@
 import { 
   useState,
   useEffect, 
-  useCallback 
 } from 'react'
 
 import { 
   qgisGetFieldsFromLayer, 
-  qgisListCurrentLayers,
   refreshPlugin, 
 } from './qgisBridge.js'
 
 import DefaultValueEditor from './features/field-settings/DefaultValueEditor.jsx'
 import useProjectLayers from './features/project/useProjectLayers.js'
+import ProjectOverview from './features/project/ProjectOverview.jsx'
+import LayerPage from './features/layers/LayerPage.jsx'
 import './App.css'
 
 function App() {
   const [loading, setLoading] = useState(false)
   const [refreshError, setReError] = useState('')
   
-  const busy = layersLoading || loading
   const {
     layers,
     loading: layersLoading,
     error: layerError,
     refreshLayers,
   } = useProjectLayers()
-
+  const busy = layersLoading || loading
+  
 
   // layer fields & related properties
   const [fields, setFields] = useState(null)
   const [fieldError, setFieldError] = useState('')
   const [selectedLayerFields, setSelectedLayerFields] = useState('')
 
+  const project = useProjectLayers()
+  const [layerId, setLayerId] = useState(null)
+  const layer = project.layers?.find(item => item.id === layerId)
+
+    useEffect(() => {
+    if (layerId !== null && project.layers !== null && !layer) {
+      setLayerId(null)
+    }
+  }, [layerId, project.layers, layer])
+
   // layer field defaults & related properties
   const [selectedFieldDefault, setSelectedFieldDefault] = useState('')
-
-  async function getFields() {
-    
-    if (!selectedLayerFields) {
-      setFieldError('Layer not selected')
-      return
-    } 
-    
-    setLoading(true)
-    setFieldError('')
-
-    try {
-      const result = await qgisGetFieldsFromLayer(selectedLayerFields)
-      if (result.error !== null) {
-        setFields(null)
-        setFieldError(result.error)
-      } else {
-        setFields(result.fields)
-      }
-    } catch (err) {
-      setFieldError(err instanceof Error ? err.message : String(err))
-    } finally {
-      setLoading(false)
-    }
-  }
 
   async function callRefresh() {
     
@@ -101,6 +86,22 @@ function App() {
         {refreshError && <p role="alert" className='error-text'> {refreshError}</p>}
       </section>
 
+      {project.error && <p role="alert">{project.error}</p>}
+
+      {layer ? (
+        <LayerPage
+          key={layer.id}
+          layer={layer}
+          onBack={() => setLayerId(null)}
+        />
+      ) : (
+        <ProjectOverview
+          project={project}
+          onOpenLayer={setLayerId}
+        />
+      )}
+
+      {/* 
       <section id="project-layers">
         <h2>Project layers</h2>
 
@@ -195,6 +196,7 @@ function App() {
         loading={busy}
         onLoadingChange={setLoading}
       />
+      */}
     </>
   )
 }
