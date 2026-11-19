@@ -29,3 +29,5 @@ __pycache__/
 *.py[cod]
 
 /plugin/qgis_management/web/
+/scripts
+
