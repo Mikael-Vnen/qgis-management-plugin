@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import {
   qgisReadFieldSettings,
   qgisSetFieldDefault,
@@ -25,94 +25,98 @@ export default function DefaultValueEditor({
     defaultRule !== undefined
   )
 
-    async function applyFieldDefault(expression, applyOnUpdate) {
+  async function applyFieldDefault(expression, applyOnUpdate) {
 
-        if (loading) return
+    if (loading) return
 
-        setDefaultError('')
-        setSaveMessage('')
+    setDefaultError('')
+    setSaveMessage('')
 
-        if (!canEditDefault) {
-        setDefaultError('Retrieve the selected field’s default before editing.')
+    if (!canEditDefault) {
+    setDefaultError('Retrieve the selected field’s default before editing.')
+    return
+    }
+
+    onLoadingChange(true)
+
+    try {
+    const result = await qgisSetFieldDefault(
+        layerId,
+        fieldName,
+        expression,
+        applyOnUpdate,
+    )
+
+    if (result.error !== null) {
+        throw new Error(result.error)
+    }
+
+    const rule = result.settings[fieldName].defaultValue
+
+    setDefaults(result.settings)
+    setExpressionDraft(rule?.expression ?? '')
+    setApplyOnUpdateDraft(rule?.applyOnUpdate ?? false)
+    setSaveMessage('Applied in QGIS. Save the project to keep the change.')
+    } catch (err) {
+    setDefaultError(err instanceof Error ? err.message : String(err))
+    } finally {
+    onLoadingChange(false)
+    }
+  }
+
+  const getFieldDefaults = useCallback(async () => {
+
+    onLoadingChange(true)
+    setDefaults(null)
+    setDefaultError('')
+
+    if (!layerId || !fieldName) {
+        setDefaultError('Layer not selected')
+        onLoadingChange(false)
         return
-        }
+    } 
+    
+    try {
+    const result = await qgisReadFieldSettings(
+        layerId, 
+        [fieldName], 
+        ['defaultValue']
+    )
 
-        onLoadingChange(true)
-
-        try {
-        const result = await qgisSetFieldDefault(
-            layerId,
-            fieldName,
-            expression,
-            applyOnUpdate,
-        )
-
-        if (result.error !== null) {
-            throw new Error(result.error)
-        }
-
+    if (result.error !== null) {
+        setDefaults(null)
+        setDefaultError(result.error)
+    } else {
         const rule = result.settings[fieldName].defaultValue
-
         setDefaults(result.settings)
         setExpressionDraft(rule?.expression ?? '')
         setApplyOnUpdateDraft(rule?.applyOnUpdate ?? false)
-        setSaveMessage('Applied in QGIS. Save the project to keep the change.')
-        } catch (err) {
-        setDefaultError(err instanceof Error ? err.message : String(err))
-        } finally {
-        onLoadingChange(false)
-        }
+        setSaveMessage('')
     }
-
-    async function getFieldDefaults() {
-
-        onLoadingChange(true)
-        setDefaults(null)
-        setDefaultError('')
-
-        if (!layerId || !fieldName) {
-            setDefaultError('Layer not selected')
-            onLoadingChange(false)
-            return
-        } 
-        
-        try {
-        const result = await qgisReadFieldSettings(
-            layerId, 
-            [fieldName], 
-            ['defaultValue']
-        )
-
-        if (result.error !== null) {
-            setDefaults(null)
-            setDefaultError(result.error)
-        } else {
-            const rule = result.settings[fieldName].defaultValue
-            setDefaults(result.settings)
-            setExpressionDraft(rule?.expression ?? '')
-            setApplyOnUpdateDraft(rule?.applyOnUpdate ?? false)
-            setSaveMessage('')
-        }
-
-        } catch (err) {
-        setDefaultError(err instanceof Error ? err.message : String(err))
-        } finally {
-        onLoadingChange(false)
-        }
+    } catch (err) {
+    setDefaultError(err instanceof Error ? err.message : String(err))
+    } finally {
+    onLoadingChange(false)
     }
+  }, [layerId, fieldName, onLoadingChange])
+
+  useEffect(() => {
+    getFieldDefaults()
+  }, [getFieldDefaults])
 
   return (
     <section id="field-default-values">
       <h2>Field default values</h2>
+      <h3>{fieldName}</h3>
 
         <button type="button" onClick={getFieldDefaults} disabled={loading}>
-          {loading ? 'Loading…' : 'Get default value'}
+          Refresh default value
         </button>
 
         {defaultsError && <p id="field-defaults-error" className="error-text" role="alert"> {defaultsError}</p>}
        
         {defaults === null ? (
-          <p>Select a field and retrieve its default value.</p>
+          <p>Default values will be shown here</p>
         ) : defaultRule === null ? (
           <p>No QGIS default-value rule is configured for this field.</p>
         ) : defaultRule === undefined ? (

@@ -40,7 +40,6 @@ export default function LayerPage({ layer, onBack }) {
       <button type="button" onClick={onBack} disabled={editorBusy}>
         Back to layers
       </button>
-
       <h2>{layer.name}</h2>
 
       {error && <p role="alert">{error}</p>}
@@ -48,32 +47,31 @@ export default function LayerPage({ layer, onBack }) {
       {fields?.length === 0 && <p>This layer has no fields.</p>}
 
       {fields?.length > 0 && (
-        <>
-          <label htmlFor="field-name">Field</label>{' '}
-          <select
-            id="field-name"
-            value={fieldName}
-            disabled={editorBusy}
-            onChange={event => setFieldName(event.target.value)}
-          >
-            <option value="">Select a field…</option>
-            {fields.map(field => (
-              <option key={field.name} value={field.name}>
-                {field.name} ({field.type})
-              </option>
-            ))}
-          </select>
+        <ul>
+          {fields.map(field => (
+            <li key={field.name}>
+              <button
+                type="button"
+                onClick={() => setFieldName(field.name)}
+                disabled={editorBusy}
+              >
+                {field.name}
+              </button>{' '}
+              <code>{field.type}</code>
+            </li>
+          ))}
+        </ul>
+        
+      )}
 
-          {fieldName && (
-            <DefaultValueEditor
-              key={fieldName}
-              layerId={layer.id}
-              fieldName={fieldName}
-              loading={editorBusy}
-              onLoadingChange={setEditorBusy}
-            />
-          )}
-        </>
+      {fieldName && (
+        <DefaultValueEditor
+          key={fieldName}
+          layerId={layer.id}
+          fieldName={fieldName}
+          loading={editorBusy}
+          onLoadingChange={setEditorBusy}
+        />
       )}
     </section>
   )
