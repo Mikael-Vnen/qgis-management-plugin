@@ -14,8 +14,6 @@
 
 .react-error-handler {
   text-align: center;
-  
-  
 }
 
 .react-error-handler details {
@@ -45,5 +43,9 @@
 
 .error-text{
   color: red
+}
+
+.align-left{
+  text-align: left;
 }
 

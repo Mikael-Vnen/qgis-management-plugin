@@ -129,47 +129,55 @@ export default function DefaultValueEditor({
         )}
 
         {canEditDefault && (
-          <fieldset disabled={loading}>
-            <legend>Edit default value</legend>
+          <fieldset disabled={loading} className="align-left">
+            <legend bold>Edit default value</legend>
 
-            <label htmlFor="default-expression">QGIS expression</label>
-            <textarea
-              id="default-expression"
-              rows={3}
-              value={expressionDraft}
-              onChange={(event) => {
-                setExpressionDraft(event.target.value)
-                setSaveMessage('')
-              }}
-            />
-
-            <label>
-              <input
-                type="checkbox"
-                checked={applyOnUpdateDraft}
+            <div>
+              <label htmlFor="default-expression"> QGIS expression</label>
+              <textarea
+                id="default-expression"
+                rows={3}
+                value={expressionDraft}
                 onChange={(event) => {
-                  setApplyOnUpdateDraft(event.target.checked)
+                  setExpressionDraft(event.target.value)
                   setSaveMessage('')
                 }}
               />
-              Apply when a feature is updated
-            </label>
-
-            <button
-              type="button"
-              disabled={!expressionDraft.trim()}
-              onClick={() => applyFieldDefault(expressionDraft, applyOnUpdateDraft)}
-            >
-              Apply default
-            </button>
-
-            <button
-              type="button"
-              disabled={defaultRule === null}
-              onClick={() => applyFieldDefault('', false)}
-            >
-              Clear default
-            </button>
+            </div>
+            
+            <div>
+              <label>
+                <input
+                  type="checkbox"
+                  checked={applyOnUpdateDraft}
+                  onChange={(event) => {
+                    setApplyOnUpdateDraft(event.target.checked)
+                    setSaveMessage('')
+                  }}
+                  />
+                Apply when a feature is updated
+              </label>
+            </div>
+            
+            <div>
+              <button
+                type="button"
+                disabled={!expressionDraft.trim()}
+                onClick={() => applyFieldDefault(expressionDraft, applyOnUpdateDraft)}
+                >
+                Apply default
+              </button>
+            </div>
+            
+            <div>
+              <button
+                type="button"
+                disabled={defaultRule === null}
+                onClick={() => applyFieldDefault('', false)}
+                >
+                Clear default
+              </button>
+            </div>
           </fieldset>
         )}
 

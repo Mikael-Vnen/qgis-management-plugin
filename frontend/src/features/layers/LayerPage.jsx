@@ -36,43 +36,44 @@ export default function LayerPage({ layer, onBack }) {
   }, [layer.id])
 
   return (
-    <section id="layer-fields">
-      <button type="button" onClick={onBack} disabled={editorBusy}>
+    <section>
+      <button type="button" className="refersh-button" onClick={onBack} disabled={editorBusy}>
         Back to layers
       </button>
       <h2>{layer.name}</h2>
 
-      {error && <p role="alert">{error}</p>}
-      {!error && fields === null && <p role="status">Loading fields…</p>}
-      {fields?.length === 0 && <p>This layer has no fields.</p>}
+      <section className="align-left">
+        {error && <p role="alert">{error}</p>}
+        {!error && fields === null && <p role="status">Loading fields…</p>}
+        {fields?.length === 0 && <p>This layer has no fields.</p>}
 
-      {fields?.length > 0 && (
-        <ul>
-          {fields.map(field => (
-            <li key={field.name}>
-              <button
-                type="button"
-                onClick={() => setFieldName(field.name)}
-                disabled={editorBusy}
-              >
-                {field.name}
-              </button>{' '}
-              <code>{field.type}</code>
-            </li>
-          ))}
-        </ul>
-        
-      )}
+        {fields?.length > 0 && (
+          <ul>
+            {fields.map(field => (
+              <li key={field.name}>
+                <button
+                  type="button"
+                  onClick={() => setFieldName(field.name)}
+                  disabled={editorBusy}
+                  >
+                  {field.name}
+                </button>{' '}
+                <code>{field.type}</code>
+              </li>
+            ))}
+          </ul>
+        )}
 
-      {fieldName && (
-        <DefaultValueEditor
+        {fieldName && (
+          <DefaultValueEditor
           key={fieldName}
           layerId={layer.id}
           fieldName={fieldName}
           loading={editorBusy}
           onLoadingChange={setEditorBusy}
-        />
-      )}
+          />
+        )}
+      </section>
     </section>
   )
 }
